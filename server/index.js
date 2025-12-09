@@ -26,7 +26,7 @@ app.post("/generate", async (req, res) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: prompt,
+          text_prompts: [{ text: prompt }],
           width: 512,
           height: 512,
           samples: 1,
