@@ -11,11 +11,14 @@ export function ImageGenerator() {
     setImageUrl("");
 
     try {
-      const res = await fetch("/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
+      const res = await fetch(
+        "https://image-generator-a5jb.onrender.com/generate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        }
+      );
 
       const data = await res.json();
       setImageUrl(data.url);
