@@ -40,6 +40,9 @@ app.post("/generate", async (req, res) => {
 
     if (result.status === "failed")
       return res.status(500).json({ error: "Generation failed" });
+    if (result.error === "Quota exceeded") {
+      return res.status(429).json({ error: "Quota exceeded" });
+    }
 
     res.json({ url: result.output });
   } catch (err) {
