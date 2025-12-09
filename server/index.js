@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import fetch from "node-fetch"; // <-- додано
 
 dotenv.config({ debug: true });
 console.log("STABILITY_API_KEY:", process.env.STABILITY_API_KEY);
