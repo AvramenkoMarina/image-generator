@@ -18,7 +18,7 @@ app.post("/generate", async (req, res) => {
 
   try {
     const response = await fetch(
-      "https://api.stability.ai/v1/generation/stable-diffusion-v1-5/text-to-image",
+      "https://api.stability.ai/v1/generation/text-to-image",
       {
         method: "POST",
         headers: {
@@ -26,7 +26,8 @@ app.post("/generate", async (req, res) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          text_prompts: [{ text: prompt }],
+          model: "stable-diffusion-v1-5",
+          prompt: prompt,
           width: 512,
           height: 512,
           samples: 1,
@@ -58,7 +59,6 @@ const __dirname = path.dirname(__filename);
 const clientBuildPath = path.join(__dirname, "../client/dist");
 
 console.log("Serving React build from:", clientBuildPath);
-
 app.use(express.static(clientBuildPath));
 
 app.get(/.*/, (req, res) => {
