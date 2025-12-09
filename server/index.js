@@ -33,7 +33,19 @@ app.post("/generate", async (req, res) => {
       }
     );
 
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.error("Failed to parse JSON from Stability API:", text);
+      return res
+        .status(500)
+        .json({ error: "Invalid response from Stability API" });
+    }
+
+    console.log("Stability API response:", data);
 
     if (!data.artifacts || data.artifacts.length === 0) {
       return res.status(500).json({ error: "Image not returned from API" });
@@ -42,7 +54,7 @@ app.post("/generate", async (req, res) => {
     const url = `data:image/png;base64,${data.artifacts[0].base64}`;
     res.json({ url });
   } catch (err) {
-    console.error(err);
+    console.error("Error generating image:", err);
     res.status(500).json({ error: "Failed to generate image" });
   }
 });
