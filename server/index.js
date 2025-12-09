@@ -12,69 +12,40 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.post("/generate", async (req, res) => {
-  const { prompt, model = "black-forest-labs/flux-1.1-pro" } = req.body;
+  const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: "Prompt is required" });
 
   try {
-    const createRes = await fetch(
-      `https://api.replicate.com/v1/models/${model}/predictions`,
+    const response = await fetch(
+      "https://api.stability.ai/v1/generation/stable-diffusion-v1-5/text-to-image",
       {
         method: "POST",
         headers: {
-          Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+          Authorization: `Bearer ${process.env.STABILITY_API_TOKEN}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ input: { prompt } }),
+        body: JSON.stringify({
+          text_prompts: [{ text: prompt }],
+          width: 512,
+          height: 512,
+          samples: 1,
+        }),
       }
     );
 
-    let result = await createRes.json();
-    console.log("Initial Replicate response:", result);
+    const data = await response.json();
+    console.log("Stability AI response:", data);
 
-    if (result.status === 402) {
-      return res.status(402).json({
-        error: "Insufficient credit on Replicate account",
-        detail: result.detail,
-      });
-    }
-
-    if (result.status === "failed") {
+    if (!data.artifacts || data.artifacts.length === 0) {
       return res
         .status(500)
-        .json({ error: "Generation failed", detail: result });
+        .json({ error: "No image generated", detail: data });
     }
 
-    while (result.status !== "succeeded" && result.status !== "failed") {
-      const pollUrl = result?.urls?.get;
-      if (!pollUrl) {
-        console.error("No polling URL returned from Replicate API:", result);
-        return res.status(500).json({
-          error: "No polling URL returned from API",
-          detail: result,
-        });
-      }
+    const imageBase64 = data.artifacts[0].base64;
+    const imageUrl = `data:image/png;base64,${imageBase64}`;
 
-      await new Promise((r) => setTimeout(r, 2000));
-      const pollRes = await fetch(pollUrl, {
-        headers: { Authorization: `Token ${process.env.REPLICATE_API_TOKEN}` },
-      });
-      result = await pollRes.json();
-      console.log("Polling result:", result);
-    }
-
-    if (result.status === "failed") {
-      return res
-        .status(500)
-        .json({ error: "Generation failed", detail: result });
-    }
-
-    if (!result.output || !result.output[0]) {
-      return res
-        .status(500)
-        .json({ error: "No output returned from generation", detail: result });
-    }
-
-    res.json({ url: result.output[0] });
+    res.json({ url: imageUrl });
   } catch (err) {
     console.error("Error generating image:", err);
     res.status(500).json({ error: "Failed to generate image" });
