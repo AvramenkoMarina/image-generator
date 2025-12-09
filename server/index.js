@@ -27,20 +27,22 @@ app.post("/generate", async (req, res) => {
         body: JSON.stringify({ input: { prompt } }),
       }
     );
-
     let result = await createRes.json();
+    console.log("Initial Replicate response:", result);
 
-    // Безпечний polling
     while (result.status !== "succeeded" && result.status !== "failed") {
       if (!result.urls || !result.urls.get) {
         console.error("No polling URL returned from Replicate API:", result);
-        return res.status(500).json({ error: "No polling URL from API" });
+        return res
+          .status(500)
+          .json({ error: "No polling URL returned from API", detail: result });
       }
       await new Promise((r) => setTimeout(r, 2000));
       const pollRes = await fetch(result.urls.get, {
         headers: { Authorization: `Token ${process.env.REPLICATE_API_TOKEN}` },
       });
       result = await pollRes.json();
+      console.log("Polling result:", result);
     }
 
     if (result.status === "failed") {
