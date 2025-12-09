@@ -1,7 +1,7 @@
 # AI Image Generator
 
 ## Short Explanation
-This project is a simple AI-powered image generator. Users can enter a text prompt, and the application generates an image using the [Replicate API](https://replicate.com/) with the model `black-forest-labs/flux-1.1-pro`. The project consists of a React frontend and an Express backend, deployed together.
+This project is a simple AI-powered image generator. Users can enter a text prompt, and the application generates an image using the [Replicate API](https://replicate.com/). The project consists of a React frontend and an Express backend, deployed together.
 
 ---
 ## Demo
@@ -31,3 +31,4 @@ https://image-generator-site.onrender.com/
 ```bash
 git clone https://github.com/AvramenkoMarina/image-generator.git
 cd image-generator
+
