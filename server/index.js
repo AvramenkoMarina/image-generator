@@ -16,35 +16,33 @@ app.post("/generate", async (req, res) => {
   if (!prompt) return res.status(400).json({ error: "Prompt is required" });
 
   try {
-    const createRes = await fetch(
-      "https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro/predictions",
+    const response = await fetch(
+      "https://api.stability.ai/v2beta/stable-image/generate/core",
       {
         method: "POST",
         headers: {
-          Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+          Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
-        body: JSON.stringify({ input: { prompt } }),
+        body: JSON.stringify({
+          prompt,
+          output_format: "png",
+        }),
       }
     );
 
-    let result = await createRes.json();
-
-    while (result.status !== "succeeded" && result.status !== "failed") {
-      await new Promise((r) => setTimeout(r, 2000));
-      const pollRes = await fetch(result.urls.get, {
-        headers: { Authorization: `Token ${process.env.REPLICATE_API_TOKEN}` },
-      });
-      result = await pollRes.json();
+    if (!response.ok) {
+      const error = await response.text();
+      return res.status(500).json({ error });
     }
 
-    if (result.status === "failed")
-      return res.status(500).json({ error: "Generation failed" });
-    if (result.error === "Quota exceeded") {
-      return res.status(429).json({ error: "Quota exceeded" });
-    }
+    const data = await response.json();
 
-    res.json({ url: result.output });
+    const base64 = data.image;
+    const url = `data:image/png;base64,${base64}`;
+
+    res.json({ url });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to generate image" });
