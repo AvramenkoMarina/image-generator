@@ -18,7 +18,7 @@ app.post("/generate", async (req, res) => {
 
   try {
     const response = await fetch(
-      "https://api.stability.ai/v1/generation/text-to-image",
+      "https://api.stability.ai/v1/generation/stable-diffusion-v1-5/text-to-image",
       {
         method: "POST",
         headers: {
@@ -26,7 +26,6 @@ app.post("/generate", async (req, res) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "stable-diffusion-v1-5",
           prompt: prompt,
           width: 512,
           height: 512,
