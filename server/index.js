@@ -33,6 +33,7 @@ app.post("/generate", async (req, res) => {
       }
     );
     console.log("STABILITY_API_KEY:", process.env.STABILITY_API_KEY);
+    console.log("STABILITY_API_KEY:", process.env.STABILITY_API_KEY);
 
     const data = await response.json();
     console.log("Stability AI response:", data);
