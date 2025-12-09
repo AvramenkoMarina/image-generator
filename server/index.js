@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import fetch from "node-fetch";
 
 dotenv.config();
 
@@ -38,15 +39,19 @@ app.post("/generate", async (req, res) => {
       result = await pollRes.json();
     }
 
-    if (result.status === "failed")
+    if (result.status === "failed") {
+      console.error("Replicate generation failed:", result);
       return res.status(500).json({ error: "Generation failed" });
-    if (result.error === "Quota exceeded") {
+    }
+
+    if (result.error && result.error.includes("Quota")) {
+      console.warn("Quota exceeded:", result);
       return res.status(429).json({ error: "Quota exceeded" });
     }
 
-    res.json({ url: result.output });
+    res.json({ url: result.output[0] });
   } catch (err) {
-    console.error(err);
+    console.error("Error generating image:", err);
     res.status(500).json({ error: "Failed to generate image" });
   }
 });
@@ -55,10 +60,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const clientBuildPath = path.join(process.cwd(), "client/dist");
+console.log("Serving React build from:", clientBuildPath);
 
 app.use(express.static(clientBuildPath));
-app.get(/.*/, (req, res) => {
-  res.sendFile(path.join(clientBuildPath, "index.html"));
+
+app.get("/*", (req, res) => {
+  res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
+    if (err) {
+      console.error("Error sending index.html:", err);
+      res.status(500).send(err);
+    }
+  });
 });
 
 const PORT = process.env.PORT || 5001;
