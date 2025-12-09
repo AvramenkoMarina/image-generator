@@ -4,7 +4,6 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import fetch from "node-fetch"; // для Node 18+ потрібно
 
 dotenv.config();
 
@@ -40,7 +39,6 @@ app.post("/generate", async (req, res) => {
       return res.status(500).json({ error: "Image not returned from API" });
     }
 
-    // беремо перший артефакт і повертаємо як base64
     const url = `data:image/png;base64,${data.artifacts[0].base64}`;
     res.json({ url });
   } catch (err) {
@@ -49,10 +47,10 @@ app.post("/generate", async (req, res) => {
   }
 });
 
-// Роздача фронтенду
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const clientBuildPath = path.join(__dirname, "../client/dist");
+
 app.use(express.static(clientBuildPath));
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(clientBuildPath, "index.html"));
