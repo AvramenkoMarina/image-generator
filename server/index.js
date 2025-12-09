@@ -11,6 +11,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// --- API route ---
 app.post("/generate", async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: "Prompt is required" });
@@ -39,13 +40,7 @@ app.post("/generate", async (req, res) => {
     }
 
     if (result.status === "failed") {
-      console.error("Replicate generation failed:", result);
       return res.status(500).json({ error: "Generation failed" });
-    }
-
-    if (result.error && result.error.includes("Quota")) {
-      console.warn("Quota exceeded:", result);
-      return res.status(429).json({ error: "Quota exceeded" });
     }
 
     res.json({ url: result.output[0] });
@@ -57,13 +52,12 @@ app.post("/generate", async (req, res) => {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const clientBuildPath = path.join(process.cwd(), "client/dist");
+const clientBuildPath = path.join(__dirname, "client/dist");
 console.log("Serving React build from:", clientBuildPath);
 
 app.use(express.static(clientBuildPath));
 
-app.get("*", (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
     if (err) {
       console.error("Error sending index.html:", err);
