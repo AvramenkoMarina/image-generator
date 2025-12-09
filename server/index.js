@@ -3,6 +3,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -10,7 +11,6 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// API маршрут
 app.post("/generate", async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: "Prompt is required" });
@@ -48,9 +48,10 @@ app.post("/generate", async (req, res) => {
   }
 });
 
-// Віддаємо React-клієнт
-const __dirname = path.resolve();
-app.use(express.static(path.join(__dirname, "../client/dist"))); // або build, якщо CRA
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, "../client/dist")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../client/dist", "index.html"));
