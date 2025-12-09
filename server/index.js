@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import fetch from "node-fetch"; // для Node 18+ потрібно
 
 dotenv.config();
 
@@ -17,28 +18,30 @@ app.post("/generate", async (req, res) => {
 
   try {
     const response = await fetch(
-      "https://api.stability.ai/v2beta/stable-image/generate/core",
+      "https://api.stability.ai/v2beta/stable-diffusion/generate",
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
           "Content-Type": "application/json",
-          Accept: "application/json",
         },
         body: JSON.stringify({
           prompt,
-          output_format: "png",
+          width: 512,
+          height: 512,
+          samples: 1,
         }),
       }
     );
 
     const data = await response.json();
 
-    if (!data.image) {
+    if (!data.artifacts || data.artifacts.length === 0) {
       return res.status(500).json({ error: "Image not returned from API" });
     }
 
-    const url = `data:image/png;base64,${data.image}`;
+    // беремо перший артефакт і повертаємо як base64
+    const url = `data:image/png;base64,${data.artifacts[0].base64}`;
     res.json({ url });
   } catch (err) {
     console.error(err);
@@ -46,12 +49,11 @@ app.post("/generate", async (req, res) => {
   }
 });
 
+// Роздача фронтенду
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const clientBuildPath = path.join(__dirname, "../client/dist");
 app.use(express.static(clientBuildPath));
-
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(clientBuildPath, "index.html"));
 });
