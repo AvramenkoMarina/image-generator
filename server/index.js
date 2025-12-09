@@ -32,16 +32,13 @@ app.post("/generate", async (req, res) => {
       }
     );
 
-    if (!response.ok) {
-      const error = await response.text();
-      return res.status(500).json({ error });
-    }
-
     const data = await response.json();
 
-    const base64 = data.image;
-    const url = `data:image/png;base64,${base64}`;
+    if (!data.image) {
+      return res.status(500).json({ error: "Image not returned from API" });
+    }
 
+    const url = `data:image/png;base64,${data.image}`;
     res.json({ url });
   } catch (err) {
     console.error(err);
