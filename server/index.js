@@ -63,7 +63,7 @@ console.log("Serving React build from:", clientBuildPath);
 
 app.use(express.static(clientBuildPath));
 
-app.get("/*", (req, res) => {
+app.get("*", (req, res) => {
   res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
     if (err) {
       console.error("Error sending index.html:", err);
