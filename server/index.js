@@ -21,7 +21,7 @@ app.post("/generate", async (req, res) => {
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.STABILITY_API_TOKEN}`,
+          Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -32,6 +32,7 @@ app.post("/generate", async (req, res) => {
         }),
       }
     );
+    console.log("STABILITY_API_KEY:", process.env.STABILITY_API_KEY);
 
     const data = await response.json();
     console.log("Stability AI response:", data);
