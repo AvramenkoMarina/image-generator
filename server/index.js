@@ -16,54 +16,47 @@ app.post("/generate", async (req, res) => {
   if (!prompt) return res.status(400).json({ error: "Prompt is required" });
 
   try {
-    const response = await fetch(
-      "https://api.stability.ai/v2beta/stable-diffusion/generate",
+    const createRes = await fetch(
+      "https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro/predictions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
+          Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          prompt,
-          width: 512,
-          height: 512,
-          samples: 1,
-        }),
+        body: JSON.stringify({ input: { prompt } }),
       }
     );
 
-    const text = await response.text();
-    let data;
+    let result = await createRes.json();
 
-    try {
-      data = JSON.parse(text);
-    } catch (err) {
-      console.error("Failed to parse JSON from Stability API:", text);
-      return res
-        .status(500)
-        .json({ error: "Invalid response from Stability API" });
+    while (result.status !== "succeeded" && result.status !== "failed") {
+      await new Promise((r) => setTimeout(r, 2000));
+      const pollRes = await fetch(result.urls.get, {
+        headers: { Authorization: `Token ${process.env.REPLICATE_API_TOKEN}` },
+      });
+      result = await pollRes.json();
     }
 
-    console.log("Stability API response:", data);
-
-    if (!data.artifacts || data.artifacts.length === 0) {
-      return res.status(500).json({ error: "Image not returned from API" });
+    if (result.status === "failed")
+      return res.status(500).json({ error: "Generation failed" });
+    if (result.error === "Quota exceeded") {
+      return res.status(429).json({ error: "Quota exceeded" });
     }
 
-    const url = `data:image/png;base64,${data.artifacts[0].base64}`;
-    res.json({ url });
+    res.json({ url: result.output });
   } catch (err) {
-    console.error("Error generating image:", err);
+    console.error(err);
     res.status(500).json({ error: "Failed to generate image" });
   }
 });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const clientBuildPath = path.join(__dirname, "../client/dist");
 
+const clientBuildPath = path.join(__dirname, "../client/dist");
 app.use(express.static(clientBuildPath));
+
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(clientBuildPath, "index.html"));
 });
