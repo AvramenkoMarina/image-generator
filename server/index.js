@@ -27,7 +27,7 @@ app.post("/generate", async (req, res) => {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          prompt: "A fantasy castle on a mountain at sunset",
+          prompt: prompt,
           width: 1024,
           height: 1024,
           samples: 1,
