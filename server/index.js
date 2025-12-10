@@ -24,7 +24,7 @@ app.post("/generate", async (req, res) => {
     const response = await openai.images.generate({
       model: "gpt-image-1",
       prompt,
-      size: "512x512",
+      size: "auto",
     });
 
     const imageBase64 = response.data[0].b64_json;
