@@ -17,41 +17,63 @@ app.post("/generate", async (req, res) => {
   if (!prompt) return res.status(400).json({ error: "Prompt is required" });
 
   try {
-    const response = await axios.post(
-      "https://stablehorde.net/api/v2/generate/async",
-      {
-        prompt: prompt,
-        params: {
-          width: 512,
-          height: 512,
-          steps: 15,
-          cfg_scale: 7,
-          sampler_name: "k_lms",
-          n_samples: 1,
+    const createTask = async () => {
+      return await axios.post(
+        "https://stablehorde.net/api/v2/generate/async",
+        {
+          prompt,
+          params: {
+            width: 512,
+            height: 512,
+            steps: 15,
+            cfg_scale: 7,
+            sampler_name: "k_lms",
+            n_samples: 1,
+          },
         },
-      },
-      {
-        headers: {
-          apikey: process.env.STABLE_HORDE_API_KEY,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+        {
+          headers: {
+            apikey: process.env.STABLE_HORDE_API_KEY,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    };
 
+    const response = await createTask();
     const taskId = response.data.id;
     console.log("Task created:", taskId);
 
-    let result;
+    let result = null;
+    let retries = 0;
+
     while (!result) {
-      await new Promise((r) => setTimeout(r, 2000));
-      const status = await axios.get(
-        `https://stablehorde.net/api/v2/generate/status/${taskId}`,
-        { headers: { apikey: process.env.STABLE_HORDE_API_KEY } }
-      );
-      if (status.data.finished) {
-        result = status.data.generations[0].img;
+      await new Promise((r) => setTimeout(r, 5000));
+
+      try {
+        const status = await axios.get(
+          `https://stablehorde.net/api/v2/generate/status/${taskId}`,
+          { headers: { apikey: process.env.STABLE_HORDE_API_KEY } }
+        );
+
+        if (status.data.finished) {
+          result = status.data.generations[0].img;
+        }
+      } catch (err) {
+        if (err.response?.status === 429) {
+          console.log("Rate limit hit, waiting 10 seconds...");
+          await new Promise((r) => setTimeout(r, 10000));
+        } else {
+          throw err;
+        }
       }
+
+      retries++;
+      if (retries > 20) break;
     }
+
+    if (!result)
+      return res.status(429).json({ error: "Rate limit exceeded or timeout" });
 
     const imageBuffer = Buffer.from(result, "base64");
     res.setHeader("Content-Type", "image/png");
