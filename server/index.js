@@ -5,10 +5,8 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import axios from "axios";
-import FormData from "form-data";
 
-dotenv.config({ debug: true });
-console.log("STABILITY_API_KEY:", process.env.STABILITY_API_KEY);
+dotenv.config();
 
 const app = express();
 app.use(cors());
@@ -19,39 +17,51 @@ app.post("/generate", async (req, res) => {
   if (!prompt) return res.status(400).json({ error: "Prompt is required" });
 
   try {
-    const form = new FormData();
-    form.append("prompt", prompt);
-    form.append("output_format", "png");
-    form.append("width", "1024");
-    form.append("height", "1024");
-    form.append("samples", "1");
-
-    const response = await axios.postForm(
-      "https://api.stability.ai/v2beta/stable-image/generate/ultra",
-      form,
+    const response = await axios.post(
+      "https://stablehorde.net/api/v2/generate/async",
       {
-        responseType: "arraybuffer",
-        headers: {
-          Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
-          ...form.getHeaders(),
-          Accept: "image/*",
+        prompt: prompt,
+        params: {
+          width: 1024,
+          height: 1024,
+          steps: 20,
+          cfg_scale: 7,
+          sampler_name: "k_lms",
+          n_samples: 1,
         },
-        validateStatus: () => true, // щоб не падало на 4xx/5xx
+      },
+      {
+        headers: {
+          apikey: process.env.STABLE_HORDE_API_KEY,
+          "Content-Type": "application/json",
+        },
       }
     );
 
-    // перевіряємо, чи дійсно прийшло зображення
-    if (response.headers["content-type"]?.startsWith("image")) {
-      res.setHeader("Content-Type", response.headers["content-type"]);
-      res.send(Buffer.from(response.data));
-    } else {
-      const errorText = Buffer.from(response.data).toString("utf-8");
-      console.error("API returned error:", errorText);
-      res.status(500).json({ error: "API error", detail: errorText });
+    const taskId = response.data.id;
+    console.log("Task created:", taskId);
+
+    let result;
+    while (!result) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const status = await axios.get(
+        `https://stablehorde.net/api/v2/generate/status/${taskId}`,
+        { headers: { apikey: process.env.STABLE_HORDE_API_KEY } }
+      );
+      if (status.data.finished) {
+        result = status.data.generations[0].img;
+      }
     }
+
+    const imageBuffer = Buffer.from(result, "base64");
+    res.setHeader("Content-Type", "image/png");
+    res.send(imageBuffer);
   } catch (err) {
-    console.error("Error generating image:", err);
-    res.status(500).json({ error: "Failed to generate image" });
+    console.error("Error generating image:", err.response?.data || err);
+    res.status(500).json({
+      error: "Failed to generate image",
+      detail: err.response?.data || err.message,
+    });
   }
 });
 
@@ -59,16 +69,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const clientBuildPath = path.join(__dirname, "../client/dist");
 
-console.log("Serving React build from:", clientBuildPath);
 app.use(express.static(clientBuildPath));
-
 app.get(/.*/, (req, res) => {
-  res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
-    if (err) {
-      console.error("Error sending index.html:", err);
-      res.status(500).send(err);
-    }
-  });
+  res.sendFile(path.join(clientBuildPath, "index.html"));
 });
 
 const PORT = process.env.PORT || 5001;
