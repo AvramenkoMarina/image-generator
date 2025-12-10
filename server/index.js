@@ -46,7 +46,11 @@ app.post("/generate", async (req, res) => {
       res.status(response.status).json({ error: response.data.toString() });
     }
   } catch (err) {
-    console.error("Error generating image:", err);
+    if (err.response && err.response.data) {
+      console.error("API response error:", err.response.data.toString());
+    } else {
+      console.error("Error generating image:", err);
+    }
     res.status(500).json({ error: "Failed to generate image" });
   }
 });
