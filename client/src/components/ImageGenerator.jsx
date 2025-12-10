@@ -20,8 +20,11 @@ export function ImageGenerator() {
         }
       );
 
-      const data = await res.json();
-      setImageUrl(data.url);
+      if (!res.ok) throw new Error("Failed to generate image");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setImageUrl(url);
     } catch (err) {
       console.error(err);
       alert("Error generating image");
