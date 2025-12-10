@@ -75,6 +75,13 @@ app.post("/generate", async (req, res) => {
     if (!result)
       return res.status(429).json({ error: "Rate limit exceeded or timeout" });
 
+    if (!result || typeof result !== "string") {
+      return res.status(500).json({
+        error: "Invalid image data",
+        detail: result,
+      });
+    }
+
     const imageBuffer = Buffer.from(result, "base64");
     res.setHeader("Content-Type", "image/png");
     res.send(imageBuffer);
