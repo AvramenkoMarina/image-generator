@@ -4,6 +4,8 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import axios from "axios";
+import FormData from "form-data";
 
 dotenv.config({ debug: true });
 console.log("STABILITY_API_KEY:", process.env.STABILITY_API_KEY);
@@ -17,32 +19,32 @@ app.post("/generate", async (req, res) => {
   if (!prompt) return res.status(400).json({ error: "Prompt is required" });
 
   try {
-    const response = await fetch(
-      "https://api.stability.ai/v2beta/generation/stable-diffusion-xl-beta-v2-2/text-to-image",
+    const form = new FormData();
+    form.append("prompt", prompt);
+    form.append("output_format", "png");
+    form.append("width", "1024");
+    form.append("height", "1024");
+    form.append("samples", "1");
+
+    const response = await axios.postForm(
+      "https://api.stability.ai/v2beta/stable-image/generate/ultra",
+      form,
       {
-        method: "POST",
+        responseType: "arraybuffer",
         headers: {
           Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
-          "Content-Type": "application/json",
+          ...form.getHeaders(),
+          Accept: "image/*",
         },
-        body: JSON.stringify({
-          prompt: prompt,
-          width: 1024,
-          height: 1024,
-          samples: 1,
-        }),
       }
     );
 
-    const result = await response.json();
-
-    if (!result.artifacts || !result.artifacts[0].base64) {
-      return res.status(500).json({ error: "No image returned from API" });
+    if (response.status === 200) {
+      res.setHeader("Content-Type", "image/png");
+      res.send(Buffer.from(response.data));
+    } else {
+      res.status(response.status).json({ error: response.data.toString() });
     }
-
-    const imageBuffer = Buffer.from(result.artifacts[0].base64, "base64");
-    res.setHeader("Content-Type", "image/png");
-    res.send(imageBuffer);
   } catch (err) {
     console.error("Error generating image:", err);
     res.status(500).json({ error: "Failed to generate image" });
