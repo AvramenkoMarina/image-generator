@@ -36,21 +36,21 @@ app.post("/generate", async (req, res) => {
           ...form.getHeaders(),
           Accept: "image/*",
         },
+        validateStatus: () => true, // щоб не падало на 4xx/5xx
       }
     );
 
-    if (response.status === 200) {
-      res.setHeader("Content-Type", "image/png");
+    // перевіряємо, чи дійсно прийшло зображення
+    if (response.headers["content-type"]?.startsWith("image")) {
+      res.setHeader("Content-Type", response.headers["content-type"]);
       res.send(Buffer.from(response.data));
     } else {
-      res.status(response.status).json({ error: response.data.toString() });
+      const errorText = Buffer.from(response.data).toString("utf-8");
+      console.error("API returned error:", errorText);
+      res.status(500).json({ error: "API error", detail: errorText });
     }
   } catch (err) {
-    if (err.response && err.response.data) {
-      console.error("API response error:", err.response.data.toString());
-    } else {
-      console.error("Error generating image:", err);
-    }
+    console.error("Error generating image:", err);
     res.status(500).json({ error: "Failed to generate image" });
   }
 });
