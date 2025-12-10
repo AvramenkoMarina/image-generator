@@ -18,13 +18,12 @@ app.post("/generate", async (req, res) => {
 
   try {
     const response = await fetch(
-      "https://api.stability.ai/v2beta/generation/text-to-image",
+      "https://api.stability.ai/v2beta/generation/stable-diffusion-xl-beta-v2-2/text-to-image",
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
           "Content-Type": "application/json",
-          Accept: "image/png",
         },
         body: JSON.stringify({
           prompt: prompt,
@@ -35,9 +34,15 @@ app.post("/generate", async (req, res) => {
       }
     );
 
-    const buffer = await response.arrayBuffer();
+    const result = await response.json();
+
+    if (!result.artifacts || !result.artifacts[0].base64) {
+      return res.status(500).json({ error: "No image returned from API" });
+    }
+
+    const imageBuffer = Buffer.from(result.artifacts[0].base64, "base64");
     res.setHeader("Content-Type", "image/png");
-    res.send(Buffer.from(buffer));
+    res.send(imageBuffer);
   } catch (err) {
     console.error("Error generating image:", err);
     res.status(500).json({ error: "Failed to generate image" });
