@@ -24,31 +24,20 @@ app.post("/generate", async (req, res) => {
         headers: {
           Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
           "Content-Type": "application/json",
-          Accept: "application/json",
+          Accept: "image/png",
         },
         body: JSON.stringify({
           prompt: prompt,
           width: 1024,
           height: 1024,
           samples: 1,
-          output_format: "base64",
         }),
       }
     );
 
-    const data = await response.json();
-    console.log("Stability AI response:", data);
-
-    if (!data.artifacts || data.artifacts.length === 0) {
-      return res
-        .status(500)
-        .json({ error: "No image generated", detail: data });
-    }
-
-    const imageBase64 = data.artifacts[0].base64;
-    const imageUrl = `data:image/png;base64,${imageBase64}`;
-
-    res.json({ url: imageUrl });
+    const buffer = await response.arrayBuffer();
+    res.setHeader("Content-Type", "image/png");
+    res.send(Buffer.from(buffer));
   } catch (err) {
     console.error("Error generating image:", err);
     res.status(500).json({ error: "Failed to generate image" });
