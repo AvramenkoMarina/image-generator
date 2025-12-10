@@ -18,18 +18,20 @@ app.post("/generate", async (req, res) => {
 
   try {
     const response = await fetch(
-      "https://api.stability.ai/v1/generation/stable-diffusion-v1-5/text-to-image",
+      "https://api.stability.ai/v2beta/generation/text-to-image",
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({
-          text_prompts: [{ text: prompt }],
-          width: 512,
-          height: 512,
+          prompt: "A fantasy castle on a mountain at sunset",
+          width: 1024,
+          height: 1024,
           samples: 1,
+          output_format: "base64",
         }),
       }
     );
